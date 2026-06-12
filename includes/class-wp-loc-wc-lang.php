@@ -42,12 +42,9 @@ class WP_LOC_WC_Lang {
 
     /**
      * Translated term ID for a target language, or null when no translation exists.
+     * Delegates to WP_LOC_Terms which maps term_id <-> term_taxonomy_id (WPML convention).
      */
     public static function translated_term_id( int $term_id, string $taxonomy, string $lang ): ?int {
-        return WP_LOC::instance()->db->get_element_translation(
-            $term_id,
-            WP_LOC_DB::tax_element_type( $taxonomy ),
-            $lang
-        );
+        return WP_LOC_Terms::get_term_translation( $term_id, $taxonomy, $lang );
     }
 }

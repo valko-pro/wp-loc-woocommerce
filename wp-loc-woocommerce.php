@@ -21,7 +21,9 @@ define( 'WP_LOC_WC_BASENAME', plugin_basename( __FILE__ ) );
 register_activation_hook( __FILE__, 'wp_loc_wc_activate' );
 
 function wp_loc_wc_activate(): void {
-    update_option( 'wp_loc_wc_activated', 1 );
+    // Existing WC terms/products may predate translatable registration and lack
+    // language rows; the sync runs on the next init (see WP_LOC_WC_Taxonomies).
+    update_option( 'wp_loc_wc_needs_language_rows_sync', 1 );
 }
 
 add_action( 'plugins_loaded', function () {
