@@ -9,6 +9,7 @@ class WP_LOC_WC {
     public $taxonomies;
     public $system_pages;
     public $cart;
+    public $variations;
 
     public static function instance() {
         if ( self::$instance === null ) {
@@ -28,6 +29,7 @@ class WP_LOC_WC {
             'class-wp-loc-wc-taxonomies',
             'class-wp-loc-wc-system-pages',
             'class-wp-loc-wc-cart',
+            'class-wp-loc-wc-variations',
         ];
 
         foreach ( $includes as $file ) {
@@ -39,5 +41,6 @@ class WP_LOC_WC {
         $this->taxonomies   = new WP_LOC_WC_Taxonomies();
         $this->system_pages = new WP_LOC_WC_System_Pages();
         $this->cart         = new WP_LOC_WC_Cart();
+        $this->variations   = new WP_LOC_WC_Variations();
     }
 }
