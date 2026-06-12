@@ -1,0 +1,41 @@
+<?php
+
+/*
+Plugin Name: WP-LOC WooCommerce
+Plugin URI: https://wp-loc.com/
+Description: WooCommerce multilingual integration for WP-LOC
+Version: 0.1.0
+Requires Plugins: wp-loc, woocommerce
+Author: Oleg Valko
+License: GPLv2 or later
+Text Domain: wp-loc-wc
+*/
+
+if ( ! defined( 'ABSPATH' ) ) exit;
+
+define( 'WP_LOC_WC_VERSION', '0.1.0' );
+define( 'WP_LOC_WC_PATH', plugin_dir_path( __FILE__ ) );
+define( 'WP_LOC_WC_URL', plugin_dir_url( __FILE__ ) );
+define( 'WP_LOC_WC_BASENAME', plugin_basename( __FILE__ ) );
+
+register_activation_hook( __FILE__, 'wp_loc_wc_activate' );
+
+function wp_loc_wc_activate(): void {
+    update_option( 'wp_loc_wc_activated', 1 );
+}
+
+add_action( 'plugins_loaded', function () {
+    load_plugin_textdomain( 'wp-loc-wc', false, dirname( WP_LOC_WC_BASENAME ) . '/languages' );
+
+    if ( ! class_exists( 'WP_LOC' ) || ! class_exists( 'WooCommerce' ) ) {
+        add_action( 'admin_notices', function () {
+            echo '<div class="notice notice-error"><p>'
+                . esc_html__( 'WP-LOC WooCommerce requires both WP-LOC and WooCommerce to be active.', 'wp-loc-wc' )
+                . '</p></div>';
+        } );
+        return;
+    }
+
+    require_once WP_LOC_WC_PATH . 'includes/class-wp-loc-wc.php';
+    WP_LOC_WC::instance();
+}, 20 );
