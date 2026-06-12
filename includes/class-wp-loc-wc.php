@@ -7,6 +7,8 @@ class WP_LOC_WC {
     private static $instance = null;
 
     public $taxonomies;
+    public $system_pages;
+    public $cart;
 
     public static function instance() {
         if ( self::$instance === null ) {
@@ -24,6 +26,8 @@ class WP_LOC_WC {
         $includes = [
             'class-wp-loc-wc-lang',
             'class-wp-loc-wc-taxonomies',
+            'class-wp-loc-wc-system-pages',
+            'class-wp-loc-wc-cart',
         ];
 
         foreach ( $includes as $file ) {
@@ -32,6 +36,8 @@ class WP_LOC_WC {
     }
 
     private function init_modules() {
-        $this->taxonomies = new WP_LOC_WC_Taxonomies();
+        $this->taxonomies   = new WP_LOC_WC_Taxonomies();
+        $this->system_pages = new WP_LOC_WC_System_Pages();
+        $this->cart         = new WP_LOC_WC_Cart();
     }
 }
