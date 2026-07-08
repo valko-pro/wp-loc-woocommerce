@@ -22,6 +22,7 @@ class WP_LOC_WC_Variations {
     public function __construct() {
         add_action( 'save_post_product', [ $this, 'handle_save' ], 999, 2 );
         add_action( 'woocommerce_save_product_variation', [ $this, 'handle_variation_save' ], 999 );
+        add_filter( 'wc_product_has_unique_sku', [ $this, 'allow_translated_sku' ], 10, 3 );
     }
 
     /**
@@ -194,6 +195,16 @@ class WP_LOC_WC_Variations {
         ] );
 
         foreach ( $orphans as $orphan_id ) {
+            // Only mirrors we own (registered as the target language) may be removed.
+            // A variation registered in another language ended up under this parent by
+            // mistake (e.g. a mis-directed parent sync) — deleting it would destroy
+            // the source product's data.
+            $orphan_lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( (int) $orphan_id, $element_type ) );
+
+            if ( $orphan_lang !== $target_lang ) {
+                continue;
+            }
+
             wp_delete_post( (int) $orphan_id, true );
         }
     }
@@ -231,5 +242,74 @@ class WP_LOC_WC_Variations {
 
             update_post_meta( $target_vid, $key, $value );
         }
+    }
+
+    /**
+     * Translations of a product/variation share the source's SKU (this module
+     * mirrors it verbatim), so WooCommerce's uniqueness check would reject any
+     * later SKU edit as a duplicate. Treat the SKU as unique when every other
+     * post carrying it is a translation (same trid group) of the checked post.
+     *
+     * @param bool   $sku_found  Whether WC found the SKU on another product.
+     * @param int    $product_id Product/variation being validated.
+     * @param string $sku        The SKU value.
+     * @return bool
+     */
+    public function allow_translated_sku( $sku_found, $product_id, $sku ) {
+        if ( ! $sku_found || $sku === '' ) {
+            return $sku_found;
+        }
+
+        global $wpdb;
+
+        $holders = $wpdb->get_col( $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_sku'
+             WHERE pm.meta_value = %s
+               AND p.ID <> %d
+               AND p.post_type IN ( 'product', 'product_variation' )
+               AND p.post_status != 'trash'",
+            $sku,
+            $product_id
+        ) );
+
+        if ( empty( $holders ) ) {
+            return $sku_found;
+        }
+
+        $siblings = $this->translation_ids( (int) $product_id );
+
+        foreach ( $holders as $holder_id ) {
+            if ( ! in_array( (int) $holder_id, $siblings, true ) ) {
+                return $sku_found;
+            }
+        }
+
+        return false;
+    }
+
+    /** All post ids in the trid group of the given post (including itself). */
+    private function translation_ids( int $post_id ): array {
+        $post_type = get_post_type( $post_id );
+
+        if ( ! in_array( $post_type, [ 'product', 'product_variation' ], true ) ) {
+            return [];
+        }
+
+        $db = WP_LOC::instance()->db;
+        $element_type = WP_LOC_DB::post_element_type( $post_type );
+        $trid = $db->get_trid( $post_id, $element_type );
+
+        if ( ! $trid ) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach ( $db->get_element_translations( (int) $trid, $element_type ) as $row ) {
+            $ids[] = (int) $row->element_id;
+        }
+
+        return $ids;
     }
 }
