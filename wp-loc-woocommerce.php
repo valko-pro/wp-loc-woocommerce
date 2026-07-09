@@ -4,7 +4,7 @@
 Plugin Name: WP-LOC WooCommerce
 Plugin URI: https://wp-loc.com/
 Description: WooCommerce multilingual integration for WP-LOC
-Version: 0.1.1
+Version: 0.2.0
 Requires Plugins: wp-loc, woocommerce
 Author: VALKO.PRO
 Author URI: https://valko.pro
@@ -14,7 +14,7 @@ Text Domain: wp-loc-wc
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'WP_LOC_WC_VERSION', '0.1.1' );
+define( 'WP_LOC_WC_VERSION', '0.2.0' );
 define( 'WP_LOC_WC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_LOC_WC_URL', plugin_dir_url( __FILE__ ) );
 define( 'WP_LOC_WC_BASENAME', plugin_basename( __FILE__ ) );
@@ -42,3 +42,9 @@ add_action( 'plugins_loaded', function () {
     require_once WP_LOC_WC_PATH . 'includes/class-wp-loc-wc.php';
     WP_LOC_WC::instance();
 }, 20 );
+
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function ( $links ) {
+    $url = admin_url( 'admin.php?page=wp-loc-woocommerce' );
+    array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'wp-loc-wc' ) . '</a>' );
+    return $links;
+} );

@@ -101,6 +101,12 @@ class WP_LOC_WC_Admin_Page {
             $this->render_status_tab();
         }
 
+        echo '<hr />';
+        echo '<h2>' . esc_html__( 'How it works', 'wp-loc-wc' ) . '</h2>';
+        echo '<p>' . esc_html__( 'WooCommerce multilingual integration for WP-LOC: products, product categories, product tags, and attribute taxonomies (pa_*) are registered as translatable so each language has its own slug and admin translation workflow.', 'wp-loc-wc' ) . '</p>';
+        echo '<p>' . esc_html__( 'Store system pages (Shop, Cart, Checkout, My Account, Terms) are resolved to their translated version for the active language automatically — if a translation is missing the original page is used as a fallback.', 'wp-loc-wc' ) . '</p>';
+        echo '<p>' . esc_html__( 'The settings page has two tabs: Status (overview of translatable content types and the translation state of each system page per language) and Permalinks (translate WooCommerce URL bases — /product/, /product-category/, /product-tag/ — per secondary language, with an option to 301-redirect legacy default-base URLs).', 'wp-loc-wc' ) . '</p>';
+
         echo '</div>';
     }
 

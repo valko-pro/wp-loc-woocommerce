@@ -1,0 +1,49 @@
+# Translation of WP-LOC WooCommerce in Ukrainian
+# Copyright (C) 2024 VALKO.PRO
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WP-LOC WooCommerce 0.2.0\n"
+"Report-Msgid-Bugs-To: https://valko.pro\n"
+"POT-Creation-Date: 2026-07-09\n"
+"PO-Revision-Date: 2026-07-09\n"
+"Last-Translator: VALKO.PRO\n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgid "WP-LOC WooCommerce requires both WP-LOC and WooCommerce to be active."
+msgstr "WP-LOC WooCommerce потребує активних плагінів WP-LOC та WooCommerce."
+
+msgid "WooCommerce Multilingual"
+msgstr "WooCommerce Multilingual"
+
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+msgid "Settings saved. Rewrite rules will refresh on the next page load."
+msgstr "Налаштування збережено. Правила перезапису оновляться при наступному завантаженні сторінки."
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Permalinks"
+msgstr "Постійні посилання"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "How it works"
+msgstr "Як це працює"
+
+msgid "WooCommerce multilingual integration for WP-LOC: products, product categories, product tags, and attribute taxonomies (pa_*) are registered as translatable so each language has its own slug and admin translation workflow."
+msgstr "Мультимовна інтеграція WooCommerce для WP-LOC: товари, категорії товарів, теги товарів та таксономії атрибутів (pa_*) реєструються як перекладувані — кожна мова має власний slug і робочий процес перекладу в адмінці."
+
+msgid "Store system pages (Shop, Cart, Checkout, My Account, Terms) are resolved to their translated version for the active language automatically — if a translation is missing the original page is used as a fallback."
+msgstr "Системні сторінки магазину (Магазин, Кошик, Оформлення замовлення, Мій акаунт, Умови) автоматично підставляються у перекладену версію для активної мови — якщо переклад відсутній, використовується оригінальна сторінка."
+
+msgid "The settings page has two tabs: Status (overview of translatable content types and the translation state of each system page per language) and Permalinks (translate WooCommerce URL bases — /product/, /product-category/, /product-tag/ — per secondary language, with an option to 301-redirect legacy default-base URLs)."
+msgstr "Сторінка налаштувань має дві вкладки: Статус (огляд перекладуваних типів контенту та стан перекладу кожної системної сторінки за мовою) і Постійні посилання (переклад баз URL WooCommerce — /product/, /product-category/, /product-tag/ — для кожної другорядної мови, з можливістю 301-перенаправлення старих URL зі стандартними базами)."
