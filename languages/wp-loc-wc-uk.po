@@ -47,3 +47,57 @@ msgstr "Системні сторінки магазину (Магазин, Ко
 
 msgid "The settings page has two tabs: Status (overview of translatable content types and the translation state of each system page per language) and Permalinks (translate WooCommerce URL bases — /product/, /product-category/, /product-tag/ — per secondary language, with an option to 301-redirect legacy default-base URLs)."
 msgstr "Сторінка налаштувань має дві вкладки: Статус (огляд перекладуваних типів контенту та стан перекладу кожної системної сторінки за мовою) і Постійні посилання (переклад баз URL WooCommerce — /product/, /product-category/, /product-tag/ — для кожної другорядної мови, з можливістю 301-перенаправлення старих URL зі стандартними базами)."
+
+msgid "301 redirect old default-base URLs to the translated base"
+msgstr "301-перенаправлення старих URL зі стандартними базами на перекладені"
+
+msgid "Category base"
+msgstr "База категорій"
+
+msgid "Coupon code is shared across languages and was reset to \"%s\". Translate only the description."
+msgstr "Код купона спільний для всіх мов і скинутий до \"%s\". Перекладайте лише опис."
+
+msgid "Legacy redirects"
+msgstr "Перенаправлення застарілих URL"
+
+msgid "Options"
+msgstr "Параметри"
+
+msgid "Page"
+msgstr "Сторінка"
+
+msgid "Post types:"
+msgstr "Типи записів:"
+
+msgid "Product base"
+msgstr "База товарів"
+
+msgid "Shop pages translations"
+msgstr "Переклади сторінок магазину"
+
+msgid "Some cart items are not available in this language and are shown in their original language."
+msgstr "Деякі товари в кошику недоступні цією мовою та відображаються мовою оригіналу."
+
+msgid "Tag base"
+msgstr "База тегів"
+
+msgid "Taxonomies:"
+msgstr "Таксономії:"
+
+msgid "The default base contains rewrite tags and cannot be translated."
+msgstr "Стандартна база містить теги перезапису і не може бути перекладена."
+
+msgid "Title"
+msgstr "Назва"
+
+msgid "Translatable WooCommerce content"
+msgstr "Перекладуваний контент WooCommerce"
+
+msgid "Translate WC permalink bases per language. Empty field = default base under the language prefix."
+msgstr "Перекладіть бази постійних посилань WC для кожної мови. Порожнє поле = стандартна база з мовним префіксом."
+
+msgid "Translation shown to customers browsing in this language."
+msgstr "Переклад, який бачать покупці, що переглядають сайт цією мовою."
+
+msgid "WP-LOC WooCommerce: the following shop pages have no translation:"
+msgstr "WP-LOC WooCommerce: наступні сторінки магазину не мають перекладу:"
