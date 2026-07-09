@@ -45,6 +45,6 @@ add_action( 'plugins_loaded', function () {
 
 add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function ( $links ) {
     $url = admin_url( 'admin.php?page=wp-loc-woocommerce' );
-    array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'wp-loc-wc' ) . '</a>' );
+    array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Settings', 'wp-loc-wc' ) . '</a>' );
     return $links;
 } );
