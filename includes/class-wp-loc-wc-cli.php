@@ -78,15 +78,20 @@ class WP_LOC_WC_CLI {
                 $lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $product_id, $element_type ) );
 
                 if ( $lang !== $default_lang ) {
+                    if ( $only_ids ) {
+                        WP_CLI::warning( "#{$product_id} is not a default-language product — skipped" );
+                    }
                     continue; // translations are handled via their source
                 }
 
-                $checked++;
                 $source = wc_get_product( $product_id );
 
                 if ( ! $source ) {
+                    WP_CLI::debug( "#{$product_id} could not be loaded as a product — skipped" );
                     continue;
                 }
+
+                $checked++;
 
                 $trid = $db->get_trid( $product_id, $element_type );
                 $diff_lines = [];
@@ -163,7 +168,7 @@ class WP_LOC_WC_CLI {
             $prop_pairs = [
                 'featured'           => [ $source->is_featured() ? 'yes' : 'no', $target->is_featured() ? 'yes' : 'no' ],
                 'catalog_visibility' => [ $source->get_catalog_visibility(), $target->get_catalog_visibility() ],
-                'shipping_class_id'  => [ (string) $source->get_shipping_class_id(), (string) $target->get_shipping_class_id() ],
+                'shipping_class_id'  => [ (string) max( 0, (int) $source->get_shipping_class_id() ), (string) max( 0, (int) $target->get_shipping_class_id() ) ],
             ];
 
             foreach ( $prop_pairs as $label => [ $source_value, $target_value ] ) {
