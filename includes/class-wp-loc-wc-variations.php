@@ -26,11 +26,45 @@ class WP_LOC_WC_Variations {
     }
 
     /**
-     * Meta keys mirrored between translated parent products.
+     * Meta keys mirrored between translated parent products — everything
+     * that is data rather than translatable text (WPML-like default set).
      * Extensible by other addons (e.g. multicurrency price overrides).
      */
     public static function synced_meta_keys(): array {
-        return apply_filters( 'wp_loc_wc_synced_meta_keys', [ '_product_attributes' ] );
+        return apply_filters( 'wp_loc_wc_synced_meta_keys', [
+            '_product_attributes',
+            // Prices.
+            '_regular_price',
+            '_sale_price',
+            '_sale_price_dates_from',
+            '_sale_price_dates_to',
+            '_price',
+            // Inventory.
+            '_manage_stock',
+            '_stock',
+            '_stock_status',
+            '_backorders',
+            '_low_stock_amount',
+            '_sold_individually',
+            // Shipping.
+            '_weight',
+            '_length',
+            '_width',
+            '_height',
+            // Tax.
+            '_tax_status',
+            '_tax_class',
+            // Virtual / downloadable / external.
+            '_virtual',
+            '_downloadable',
+            '_downloadable_files',
+            '_download_limit',
+            '_download_expiry',
+            '_product_url',
+            // Misc.
+            '_sku',
+            '_product_image_gallery',
+        ] );
     }
 
     public function handle_save( int $post_id, $post ): void {
@@ -122,11 +156,35 @@ class WP_LOC_WC_Variations {
 
         if ( $source->is_type( 'variable' ) ) {
             wp_set_object_terms( $target_id, 'variable', 'product_type' );
+            // Invalidate the WC product-type cache so that the re-read below sees
+            // 'variable', not the 'simple' value that was cached before the term
+            // was changed. wc_delete_product_transients() does not touch this cache.
+            WC_Cache_Helper::invalidate_cache_group( 'product_' . $target_id );
             $this->sync_variations( $source, $target_id, $target_lang );
             WC_Product_Variable::sync( $target_id );
+
+            // Re-read after variation sync: the original $target object still has
+            // type=simple from the initial load and would overwrite the product_type
+            // term when saved. A fresh WC_Product_Variable object saves correctly.
+            $target = wc_get_product( $target_id );
+
+            if ( ! $target ) {
+                return;
+            }
         }
 
-        wc_delete_product_transients( $target_id );
+        // Mirror term-backed props via CRUD setters and save so WooCommerce
+        // refreshes wc_product_meta_lookup and product_visibility terms
+        // (featured / exclude-from-* / outofstock). For simple products we use
+        // the original $target object (not a re-read) because update_post_meta()
+        // in the loop above updated the DB but not the in-memory WC object;
+        // the CRUD setters therefore detect genuine changes and update_visibility()
+        // runs. Recursion is blocked by self::$syncing.
+        $target->set_featured( $source->is_featured() );
+        $target->set_catalog_visibility( $source->get_catalog_visibility() );
+        $target->set_stock_status( $source->get_stock_status() );
+        $target->set_shipping_class_id( $source->get_shipping_class_id() );
+        $target->save();
     }
 
     private function sync_variations( WC_Product $source, int $target_id, string $target_lang ): void {
