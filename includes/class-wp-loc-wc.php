@@ -51,6 +51,10 @@ class WP_LOC_WC {
             require_once WP_LOC_WC_PATH . "includes/{$file}.php";
         }
 
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            require_once WP_LOC_WC_PATH . 'includes/class-wp-loc-wc-cli.php';
+        }
+
         if ( is_admin() ) {
             require_once WP_LOC_WC_PATH . 'includes/class-wp-loc-wc-admin-page.php';
         }
@@ -70,6 +74,10 @@ class WP_LOC_WC {
 
         $this->permalinks    = new WP_LOC_WC_Permalinks();
         $this->rewrite_rules = new WP_LOC_WC_Rewrite_Rules();
+
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            WP_CLI::add_command( 'wp-loc-wc', 'WP_LOC_WC_CLI' );
+        }
 
         if ( is_admin() ) {
             $this->admin_page = new WP_LOC_WC_Admin_Page();

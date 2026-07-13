@@ -79,6 +79,14 @@ class WP_LOC_WC_Variations {
         $this->sync_around( $post_id );
     }
 
+    /**
+     * Public entry point for bulk tools (WP-CLI backfill): run the usual
+     * push/pull sync for a single product id.
+     */
+    public function sync_product( int $product_id ): void {
+        $this->sync_around( $product_id );
+    }
+
     public function handle_variation_save( int $variation_id ): void {
         if ( self::$syncing ) {
             return;
