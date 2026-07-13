@@ -55,11 +55,11 @@ $via = 'auto-create';
 if ( ! $ru_pid ) {
     $via = 'manual';
     $trid = $db->get_trid( $ua_pid, 'post_product' );
-    $ru_pid = wp_insert_post( [ 'post_title' => 'Тестовый простой', 'post_name' => 'test-simple-meta-ru', 'post_type' => 'product', 'post_status' => 'publish' ] );
+    $ru_pid = wp_insert_post( [ 'post_title' => 'Тестовый простой', 'post_content' => 'RU описание', 'post_name' => 'test-simple-meta-ru', 'post_type' => 'product', 'post_status' => 'publish' ] );
     $db->set_element_language( $ru_pid, 'post_product', 'ru', $trid, $default );
 } else {
-    // auto-create копіює назву — виставляємо ru-назву, щоб перевірити недоторканність текстів
-    wp_update_post( [ 'ID' => (int) $ru_pid, 'post_title' => 'Тестовый простой' ] );
+    // auto-create копіює назву — виставляємо ru-назву і ru-опис, щоб перевірити недоторканність текстів
+    wp_update_post( [ 'ID' => (int) $ru_pid, 'post_title' => 'Тестовый простой', 'post_content' => 'RU описание' ] );
 }
 
 $ru_pid = (int) $ru_pid;
@@ -80,26 +80,83 @@ $checks['gallery mirrored'] = get_post_meta( $ru_pid, '_product_image_gallery', 
 $checks['featured mirrored'] = wc_get_product( $ru_pid )->is_featured() === true;
 $checks['RU title untouched'] = get_post( $ru_pid )->post_title === 'Тестовый простой';
 $checks['UA title untouched'] = get_post( $ua_pid )->post_title === 'Тестовий простий';
+$checks['RU description untouched'] = get_post( $ru_pid )->post_content === 'RU описание';
 
 $lookup = $wpdb->get_row( $wpdb->prepare(
     "SELECT min_price, max_price, onsale FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id = %d",
     $ru_pid
 ) );
 $checks['lookup min_price = 199'] = $lookup && (float) $lookup->min_price === 199.0;
+$checks['lookup max_price = 199'] = $lookup && (float) $lookup->max_price === 199.0;
 $checks['lookup onsale = 1'] = $lookup && (int) $lookup->onsale === 1;
 
-// 5. Зміна знижки на UA → пуш у RU
-// WC CRUD save оновлює тільки мету і не тригерить save_post_product коли не змінюються
-// post-level поля (так само як і в адмінці без submit форми). wp_update_post
-// дублює поведінку адмін-сейву і запускає повний цикл sync.
+// 5. Steady-state price-only edit: the lookup staleness bug.
+//
+// Products with manage_stock=true and an explicit non-standard tax_class do NOT
+// have any cycling props (tax_class stable, _stock stable) — so after full
+// alignment the four existing CRUD setters (featured/visibility/stock_status/
+// shipping_class) detect zero changes on a price-only edit.  Without the fix,
+// updated_props is empty → WC never calls update_lookup_table → the lookup row
+// stays stale even though _sale_price/_price meta were updated correctly.
+//
+// Fixture: fresh product with zero-rate tax + managed stock (10 units) so all
+// meta are stable after the first full sync.
+$ua2 = new WC_Product_Simple();
+$ua2->set_name( 'Тестовий стабільний' );
+$ua2->set_slug( 'test-simple-meta-stable-ua' );
+$ua2->set_status( 'publish' );
+$ua2->set_regular_price( '250' );
+$ua2->set_sale_price( '199' );
+$ua2->set_tax_class( 'zero-rate' );
+$ua2->set_manage_stock( true );
+$ua2->set_stock_quantity( 10 );
+$ua2->set_stock_status( 'instock' );
+$ua2_pid = $ua2->save();
+
+if ( ! $db->get_element_language( $ua2_pid, 'post_product' ) ) {
+    $db->set_element_language( $ua2_pid, 'post_product', $default );
+}
+
+$trid2 = $db->get_trid( $ua2_pid, 'post_product' );
+$ru2_pid = wp_insert_post( [ 'post_title' => 'Тестовый стабильный', 'post_name' => 'test-simple-meta-stable-ru', 'post_type' => 'product', 'post_status' => 'publish' ] );
+$db->set_element_language( $ru2_pid, 'post_product', 'ru', $trid2, $default );
+$ru2_pid = (int) $ru2_pid;
+
+// Multiple syncs to fully stabilize all meta (stock_quantity, tax_class, etc.)
+for ( $i = 0; $i < 5; $i++ ) {
+    wp_update_post( [ 'ID' => $ua2_pid ] );
+    wp_cache_flush();
+}
+
+// Now change ONLY the sale price on UA2
+$ua2_p = wc_get_product( $ua2_pid );
+$ua2_p->set_sale_price( '149' );
+$ua2_p->save();
+wp_update_post( [ 'ID' => $ua2_pid ] );
+wp_cache_flush();
+
+$checks['sale change pushed (stable fixture)'] = get_post_meta( $ru2_pid, '_sale_price', true ) === '149';
+
+// Without the fix: min_price still 199 (stale). With the fix: 149.
+$lookup2 = $wpdb->get_row( $wpdb->prepare(
+    "SELECT min_price, max_price, onsale FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id = %d",
+    $ru2_pid
+) );
+$checks['lookup min_price = 149 after sale change'] = $lookup2 && (float) $lookup2->min_price === 149.0;
+$checks['lookup max_price = 149 after sale change'] = $lookup2 && (float) $lookup2->max_price === 149.0;
+$checks['lookup onsale = 1 after sale change'] = $lookup2 && (int) $lookup2->onsale === 1;
+
+// Cleanup stable fixture
+wp_delete_post( $ua2_pid, true );
+wp_delete_post( $ru2_pid, true );
+
+// 6. Pull-напрямок: диверсія в RU-мету → збереження RU повертає значення з UA
 $ua_p = wc_get_product( $ua_pid );
 $ua_p->set_sale_price( '149' );
 $ua_p->save();
 wp_update_post( [ 'ID' => $ua_pid ] );
 wp_cache_flush();
-$checks['sale change pushed'] = get_post_meta( $ru_pid, '_sale_price', true ) === '149';
 
-// 6. Pull-напрямок: диверсія в RU-мету → збереження RU повертає значення з UA
 update_post_meta( $ru_pid, '_sale_price', '999' );
 wp_update_post( [ 'ID' => $ru_pid ] );
 wp_cache_flush();

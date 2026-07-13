@@ -148,21 +148,15 @@ class WP_LOC_WC_Variations {
             return;
         }
 
-        foreach ( self::synced_meta_keys() as $meta_key ) {
-            $value = get_post_meta( $source_id, $meta_key, true );
-
-            if ( $value === '' || $value === false ) {
-                delete_post_meta( $target_id, $meta_key );
-            } else {
-                update_post_meta( $target_id, $meta_key, $value );
-            }
-        }
-
-        // Term assignments (categories, tags, pa_*) are synced by wp-loc itself
-        // (WP_LOC_Content::sync_post_terms, save_post prio 30) with translation
-        // mapping — this module only mirrors what wp-loc does not know about.
-
         if ( $source->is_type( 'variable' ) ) {
+            // Variable path: raw meta copy first, then variation sync, then re-read
+            // and save via CRUD for term-backed props.
+            $this->copy_synced_meta( $source_id, $target_id );
+
+            // Term assignments (categories, tags, pa_*) are synced by wp-loc itself
+            // (WP_LOC_Content::sync_post_terms, save_post prio 30) with translation
+            // mapping — this module only mirrors what wp-loc does not know about.
+
             wp_set_object_terms( $target_id, 'variable', 'product_type' );
             // Invalidate the WC product-type cache so that the re-read below sees
             // 'variable', not the 'simple' value that was cached before the term
@@ -179,20 +173,57 @@ class WP_LOC_WC_Variations {
             if ( ! $target ) {
                 return;
             }
-        }
 
-        // Mirror term-backed props via CRUD setters and save so WooCommerce
-        // refreshes wc_product_meta_lookup and product_visibility terms
-        // (featured / exclude-from-* / outofstock). For simple products we use
-        // the original $target object (not a re-read) because update_post_meta()
-        // in the loop above updated the DB but not the in-memory WC object;
-        // the CRUD setters therefore detect genuine changes and update_visibility()
-        // runs. Recursion is blocked by self::$syncing.
-        $target->set_featured( $source->is_featured() );
-        $target->set_catalog_visibility( $source->get_catalog_visibility() );
-        $target->set_stock_status( $source->get_stock_status() );
-        $target->set_shipping_class_id( $source->get_shipping_class_id() );
-        $target->save();
+            $target->set_featured( $source->is_featured() );
+            $target->set_catalog_visibility( $source->get_catalog_visibility() );
+            $target->set_stock_status( $source->get_stock_status() );
+            $target->set_shipping_class_id( $source->get_shipping_class_id() );
+            $target->save();
+        } else {
+            // Non-variable path: push all lookup-backed props through CRUD setters
+            // BEFORE the raw meta copy.  WooCommerce refreshes wc_product_meta_lookup
+            // only for props that appear in updated_props, which only happens when the
+            // CRUD layer detects a real DB change.  If we copy the meta first the
+            // raw-write pre-empts the CRUD write (same value already in DB → MySQL
+            // returns 0 rows → no updated_props → no lookup refresh).  Staging the
+            // setters here — while the target DB still holds the old values — ensures
+            // the CRUD save() always sees genuine changes and refreshes the lookup.
+            // Recursion is blocked by self::$syncing.
+            $target->set_featured( $source->is_featured() );
+            $target->set_catalog_visibility( $source->get_catalog_visibility() );
+            $target->set_stock_status( $source->get_stock_status() );
+            $target->set_shipping_class_id( $source->get_shipping_class_id() );
+            $target->set_regular_price( $source->get_regular_price( 'edit' ) );
+            $target->set_sale_price( $source->get_sale_price( 'edit' ) );
+            $target->set_date_on_sale_from( $source->get_date_on_sale_from( 'edit' ) );
+            $target->set_date_on_sale_to( $source->get_date_on_sale_to( 'edit' ) );
+            $target->set_sku( $source->get_sku( 'edit' ) );
+            $target->set_manage_stock( $source->get_manage_stock( 'edit' ) );
+            $target->set_stock_quantity( $source->get_stock_quantity( 'edit' ) );
+            $target->set_tax_status( $source->get_tax_status( 'edit' ) );
+            $target->set_tax_class( $source->get_tax_class( 'edit' ) );
+            $target->set_virtual( $source->get_virtual( 'edit' ) );
+            $target->set_downloadable( $source->get_downloadable( 'edit' ) );
+            $target->save();
+
+            // Raw meta copy after save() so that keys not covered by the CRUD setters
+            // (e.g. _product_image_gallery, _product_attributes) are also mirrored.
+            // For the keys the CRUD layer already wrote, these are no-ops.
+            $this->copy_synced_meta( $source_id, $target_id );
+        }
+    }
+
+    /** Copy all synced meta keys from source to target as raw post meta. */
+    private function copy_synced_meta( int $source_id, int $target_id ): void {
+        foreach ( self::synced_meta_keys() as $meta_key ) {
+            $value = get_post_meta( $source_id, $meta_key, true );
+
+            if ( $value === '' || $value === false ) {
+                delete_post_meta( $target_id, $meta_key );
+            } else {
+                update_post_meta( $target_id, $meta_key, $value );
+            }
+        }
     }
 
     private function sync_variations( WC_Product $source, int $target_id, string $target_lang ): void {

@@ -152,6 +152,12 @@ class WP_LOC_WC_CLI {
         $source_id = $source->get_id();
 
         foreach ( WP_LOC_WC_Variations::synced_meta_keys() as $meta_key ) {
+            // Variable parents carry min/max _price rows derived from their
+            // variations; comparing raw meta produces sticky false diffs.
+            if ( $meta_key === '_price' && $source->is_type( 'variable' ) ) {
+                continue;
+            }
+
             $source_value = get_post_meta( $source_id, $meta_key, true );
             $target_value = get_post_meta( $target_id, $meta_key, true );
 
