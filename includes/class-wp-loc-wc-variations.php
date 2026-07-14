@@ -145,7 +145,11 @@ class WP_LOC_WC_Variations {
      *
      * Uses the same $synced_via_variation dedup map as handle_variation_save()
      * to avoid syncing the same parent multiple times in one request.
-     * No inter-hook dedup with handle_variation_save() is needed beyond the shared map: $variation->save() fully commits before woocommerce_save_product_variation fires, so a second sync would see identical state.
+     * The shared $synced_via_variation map runs the sync once per parent per
+     * request; later variations changed in the same request are still covered
+     * because every variation save() queues the parent for WooCommerce's deferred
+     * product sync at shutdown, whose parent save() re-enters handle_crud_update()
+     * after the guard is released.
      *
      * @param int|mixed $variation_id
      */
