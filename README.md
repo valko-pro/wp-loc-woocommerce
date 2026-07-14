@@ -12,7 +12,7 @@ Independent of the `wp-loc-multicurrency` addon — either plugin works alone. M
 
 ## What it does
 
-- **Shop basics**: products, categories, tags and all `pa_*` attributes are translatable; variations stay in sync between translated products; product data (prices and sale schedules, stock status, SKU, dimensions, tax, shipping class, featured/catalog visibility, image gallery, downloadable/external fields) is mirrored from the default-language product to its translations — only text stays per-language; WC system pages (Shop / Cart / Checkout / My Account / Terms) resolve to the active language; the cart survives a language switch.
+- **Shop basics**: products, categories, tags and all `pa_*` attributes are translatable; variations stay in sync between translated products; product data (prices and sale schedules, stock status, SKU, dimensions, tax, shipping class, featured/catalog visibility, image gallery, downloadable/external fields) is mirrored from the default-language product to its translations — only text stays per-language; programmatic updates (REST API, importers) trigger the same push; WC system pages (Shop / Cart / Checkout / My Account / Terms) resolve to the active language; the cart survives a language switch.
 - **Commerce layer**: customer emails are sent in the order language (admin emails stay in the default language); coupons are translatable with a shared code; shipping and payment method labels can be translated in their native WC settings screens.
 - **URLs & SEO**: translated permalink bases (`/product/` → `/ru/tovar/`), correct hreflang/canonical for products and categories, Yoast XML sitemap entries per language.
 

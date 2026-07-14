@@ -22,6 +22,8 @@ class WP_LOC_WC_Variations {
     public function __construct() {
         add_action( 'save_post_product', [ $this, 'handle_save' ], 999, 2 );
         add_action( 'woocommerce_save_product_variation', [ $this, 'handle_variation_save' ], 999 );
+        add_action( 'woocommerce_update_product', [ $this, 'handle_crud_update' ], 999 );
+        add_action( 'woocommerce_update_product_variation', [ $this, 'handle_crud_variation_update' ], 999 );
         add_filter( 'wc_product_has_unique_sku', [ $this, 'allow_translated_sku' ], 10, 3 );
     }
 
@@ -96,6 +98,71 @@ class WP_LOC_WC_Variations {
 
         // The hook fires once per variation on admin save — sync the parent once.
         if ( $parent_id && ! isset( self::$synced_via_variation[ $parent_id ] ) ) {
+            self::$synced_via_variation[ $parent_id ] = true;
+            $this->sync_around( $parent_id );
+        }
+    }
+
+    /**
+     * CRUD-layer trigger: WC fires this on programmatic saves (REST API,
+     * importers, stock updates) that never go through save_post.
+     *
+     * Push-only: order-time stock reduction on a translation also lands here,
+     * and a pull would overwrite the freshly reduced stock with the source
+     * value. Translations still pull via save_post (admin edits).
+     *
+     * On admin saves this fires in addition to handle_save() — the double
+     * sync is accepted: deduping would break the new-product flow, where
+     * wp-loc auto-creates the translation later in the same save_post chain.
+     *
+     * @param int|mixed $product_id
+     */
+    public function handle_crud_update( $product_id ): void {
+        if ( self::$syncing ) {
+            return;
+        }
+
+        $product_id = (int) $product_id;
+        $db = WP_LOC::instance()->db;
+        $lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $product_id, WP_LOC_DB::post_element_type( 'product' ) ) );
+
+        if ( $lang !== WP_LOC_WC_Lang::default_lang() ) {
+            return;
+        }
+
+        $this->sync_around( $product_id );
+    }
+
+    /**
+     * CRUD-layer trigger for variation saves (REST API, importers, stock
+     * updates). Push-only, checked against the parent's language: order-time
+     * stock reduction on a translated variation also fires this hook, and a
+     * pull would overwrite the freshly reduced stock with the source value.
+     *
+     * Uses the same $synced_via_variation dedup map as handle_variation_save()
+     * to avoid syncing the same parent multiple times in one request.
+     *
+     * @param int|mixed $variation_id
+     */
+    public function handle_crud_variation_update( $variation_id ): void {
+        if ( self::$syncing ) {
+            return;
+        }
+
+        $parent_id = (int) wp_get_post_parent_id( (int) $variation_id );
+
+        if ( ! $parent_id ) {
+            return;
+        }
+
+        $db = WP_LOC::instance()->db;
+        $parent_lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $parent_id, WP_LOC_DB::post_element_type( 'product' ) ) );
+
+        if ( $parent_lang !== WP_LOC_WC_Lang::default_lang() ) {
+            return;
+        }
+
+        if ( ! isset( self::$synced_via_variation[ $parent_id ] ) ) {
             self::$synced_via_variation[ $parent_id ] = true;
             $this->sync_around( $parent_id );
         }

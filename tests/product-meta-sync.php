@@ -128,11 +128,11 @@ for ( $i = 0; $i < 5; $i++ ) {
     wp_cache_flush();
 }
 
-// Now change ONLY the sale price on UA2
+// Now change ONLY the sale price on UA2 — only a CRUD save, no wp_update_post workaround;
+// the woocommerce_update_product hook must carry the sync.
 $ua2_p = wc_get_product( $ua2_pid );
 $ua2_p->set_sale_price( '149' );
 $ua2_p->save();
-wp_update_post( [ 'ID' => $ua2_pid ] );
 wp_cache_flush();
 
 $checks['sale change pushed (stable fixture)'] = get_post_meta( $ru2_pid, '_sale_price', true ) === '149';
@@ -162,11 +162,11 @@ wp_update_post( [ 'ID' => $ru_pid ] );
 wp_cache_flush();
 $checks['RU save pulls from UA'] = get_post_meta( $ru_pid, '_sale_price', true ) === '149';
 
-// 7. Статус наявності: outofstock дзеркалиться разом із visibility-термом
+// 7. Статус наявності: outofstock дзеркалиться разом із visibility-термом.
+// Only a CRUD save — the woocommerce_update_product hook must carry the sync.
 $ua_p = wc_get_product( $ua_pid );
 $ua_p->set_stock_status( 'outofstock' );
 $ua_p->save();
-wp_update_post( [ 'ID' => $ua_pid ] );
 wp_cache_flush();
 $ru_p = wc_get_product( $ru_pid );
 $checks['stock status mirrored'] = $ru_p && $ru_p->get_stock_status() === 'outofstock';
