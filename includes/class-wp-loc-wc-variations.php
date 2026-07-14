@@ -353,6 +353,29 @@ class WP_LOC_WC_Variations {
                 ] );
             }
 
+            // CRUD-first: push lookup-backed props through the WC object layer
+            // BEFORE copy_variation_meta() writes raw meta.  The DB still holds
+            // old (or missing) values at this point, so the CRUD save() sees real
+            // changes and updates / creates the wc_product_meta_lookup row.
+            $src_v = wc_get_product( $source_vid );
+            $tgt_v = wc_get_product( (int) $target_vid );
+
+            if ( $src_v && $tgt_v ) {
+                $tgt_v->set_regular_price( $src_v->get_regular_price( 'edit' ) );
+                $tgt_v->set_sale_price( $src_v->get_sale_price( 'edit' ) );
+                $tgt_v->set_date_on_sale_from( $src_v->get_date_on_sale_from( 'edit' ) );
+                $tgt_v->set_date_on_sale_to( $src_v->get_date_on_sale_to( 'edit' ) );
+                $tgt_v->set_sku( $src_v->get_sku( 'edit' ) );
+                $tgt_v->set_manage_stock( $src_v->get_manage_stock( 'edit' ) );
+                $tgt_v->set_stock_quantity( $src_v->get_stock_quantity( 'edit' ) );
+                $tgt_v->set_stock_status( $src_v->get_stock_status( 'edit' ) );
+                $tgt_v->set_tax_status( $src_v->get_tax_status( 'edit' ) );
+                $tgt_v->set_tax_class( $src_v->get_tax_class( 'edit' ) );
+                $tgt_v->set_virtual( $src_v->get_virtual( 'edit' ) );
+                $tgt_v->set_downloadable( $src_v->get_downloadable( 'edit' ) );
+                $tgt_v->save();
+            }
+
             $this->copy_variation_meta( $source_vid, (int) $target_vid, $target_lang );
             $mirrored[] = (int) $target_vid;
         }

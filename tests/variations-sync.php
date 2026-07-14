@@ -148,6 +148,26 @@ $checks['variations linked in icl as ru'] = $icl_ok;
 $checks['variation attribute slugs translated'] = $slugs_found === $expected_ru_slugs;
 $checks['variation prices mirrored'] = $prices_found === [ '100', '120' ];
 
+// 8. Steady-state: зміна ціни варіації UA → lookup цільової варіації і батька
+$ua_vids = wc_get_product( $ua_pid )->get_children();
+$v = wc_get_product( (int) $ua_vids[0] );
+$v->set_regular_price( '80' );
+$v->save();
+wp_update_post( [ 'ID' => $ua_pid ] ); // явний push-тригер: дедуп-мапа варіацій уже спожита в цьому процесі
+wp_cache_flush();
+
+$ru_children = wc_get_product( $ru_pid )->get_children();
+$ru_ids_sql = implode( ',', array_map( 'intval', $ru_children ) );
+$ru_lookup_min = $wpdb->get_var( "SELECT MIN(min_price) FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id IN ({$ru_ids_sql})" );
+$parent_lookup = $wpdb->get_row( $wpdb->prepare(
+	"SELECT min_price, max_price FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id = %d",
+	$ru_pid
+) );
+$checks['RU variation lookup rows exist'] = count( $ru_children ) === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id IN ({$ru_ids_sql})" );
+$checks['RU variation lookup min 80'] = (float) $ru_lookup_min === 80.0;
+$checks['RU parent lookup min 80'] = $parent_lookup && (float) $parent_lookup->min_price === 80.0;
+$checks['RU parent lookup max 120'] = $parent_lookup && (float) $parent_lookup->max_price === 120.0;
+
 // 6. Pull-напрямок: збереження RU-товару не дублює варіації
 wp_update_post( [ 'ID' => $ru_pid ] );
 wp_cache_flush();
