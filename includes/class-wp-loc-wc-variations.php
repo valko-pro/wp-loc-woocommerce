@@ -126,6 +126,10 @@ class WP_LOC_WC_Variations {
         $db = WP_LOC::instance()->db;
         $lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $product_id, WP_LOC_DB::post_element_type( 'product' ) ) );
 
+        if ( $lang === null ) {
+            return; // no wp-loc language row — nothing to sync against
+        }
+
         if ( $lang !== WP_LOC_WC_Lang::default_lang() ) {
             return;
         }
@@ -141,6 +145,7 @@ class WP_LOC_WC_Variations {
      *
      * Uses the same $synced_via_variation dedup map as handle_variation_save()
      * to avoid syncing the same parent multiple times in one request.
+     * No inter-hook dedup with handle_variation_save() is needed beyond the shared map: $variation->save() fully commits before woocommerce_save_product_variation fires, so a second sync would see identical state.
      *
      * @param int|mixed $variation_id
      */
@@ -157,6 +162,10 @@ class WP_LOC_WC_Variations {
 
         $db = WP_LOC::instance()->db;
         $parent_lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $parent_id, WP_LOC_DB::post_element_type( 'product' ) ) );
+
+        if ( $parent_lang === null ) {
+            return; // no wp-loc language row — nothing to sync against
+        }
 
         if ( $parent_lang !== WP_LOC_WC_Lang::default_lang() ) {
             return;
