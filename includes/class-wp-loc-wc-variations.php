@@ -410,11 +410,38 @@ class WP_LOC_WC_Variations {
     }
 
     /**
+     * Enable/disable WP-LOC's term-language filters (get_term p1 + terms_clauses
+     * p10). In WP-CLI/cron (is_admin() false) they are active and remap the
+     * attribute-term lookups in copy_variation_meta() back to the default
+     * language, so the variation meta would keep the source slug instead of the
+     * translated one. Mirrors WP_LOC_Content::set_term_language_filters().
+     */
+    private function set_term_language_filters( bool $enabled ): void {
+        $terms_filter = ( class_exists( 'WP_LOC' ) && isset( WP_LOC::instance()->terms ) )
+            ? WP_LOC::instance()->terms
+            : null;
+
+        if ( ! $terms_filter ) {
+            return;
+        }
+
+        if ( $enabled ) {
+            add_filter( 'get_term', [ $terms_filter, 'adjust_term_to_current_language' ], 1, 2 );
+            add_filter( 'terms_clauses', [ $terms_filter, 'filter_terms_clauses' ], 10, 3 );
+        } else {
+            remove_filter( 'get_term', [ $terms_filter, 'adjust_term_to_current_language' ], 1 );
+            remove_filter( 'terms_clauses', [ $terms_filter, 'filter_terms_clauses' ], 10 );
+        }
+    }
+
+    /**
      * Copy all variation meta; attribute_pa_* slugs are mapped to the
      * translated term slug for the target language.
      */
     private function copy_variation_meta( int $source_vid, int $target_vid, string $target_lang ): void {
         $meta = get_post_meta( $source_vid );
+
+        $this->set_term_language_filters( false );
 
         foreach ( $meta as $key => $values ) {
             if ( strpos( $key, '_wp_loc' ) === 0 ) {
@@ -442,6 +469,8 @@ class WP_LOC_WC_Variations {
 
             update_post_meta( $target_vid, $key, $value );
         }
+
+        $this->set_term_language_filters( true );
     }
 
     /**
