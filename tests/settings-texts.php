@@ -1,6 +1,6 @@
 <?php
 /**
- * E2E: перекладні free-text налаштування WooCommerce.
+ * E2E: перекладні free-text налаштування WooCommerce через перемикач мови.
  * Запуск: wp eval-file tests/settings-texts.php
  * Тільки читання — нічого не створює і не змінює.
  */
@@ -9,15 +9,22 @@ $checks = [];
 
 $options   = array_merge( [], ...array_values( WP_LOC_WC_Settings_Texts::TRANSLATED_OPTIONS ) );
 $languages = array_keys( WP_LOC_Languages::get_active_languages() );
-$default   = WP_LOC_WC_Lang::default_lang();
+$default   = WP_LOC_Languages::get_default_language();
 
 // 1. Кожна опція зареєстрована в мультимовному рушії wp-loc.
 foreach ( $options as $option ) {
     $checks["{$option} registered as multilingual"] = WP_LOC_Options::is_multilingual( $option );
 }
 
-// 2. Екран «Accounts & Privacy» отримує поле під кожну недефолтну мову.
+// 2. Екран WC опт-іниться у мовну підміну значень, і на ньому немає дублів.
+require_once ABSPATH . 'wp-admin/includes/screen.php';
 require_once WC_ABSPATH . 'includes/admin/class-wc-admin-settings.php';
+
+$checks['WC settings screen opts into localized options'] =
+    apply_filters( 'wp_loc_is_localized_options_screen', false, WP_Screen::get( WP_LOC_WC_Settings_Texts::SCREEN_ID ) ) === true;
+
+$checks['unrelated screen stays untouched'] =
+    apply_filters( 'wp_loc_is_localized_options_screen', false, WP_Screen::get( 'edit-post' ) ) === false;
 
 $field_ids = [];
 
@@ -41,7 +48,7 @@ foreach ( $options as $option ) {
 
         $suffix = WP_LOC_DB::to_db_language_code( $lang ) ?: $lang;
 
-        $checks["{$option}_{$suffix} field injected"] = in_array( "{$option}_{$suffix}", $field_ids, true );
+        $checks["no duplicated {$option}_{$suffix} field"] = ! in_array( "{$option}_{$suffix}", $field_ids, true );
     }
 }
 
