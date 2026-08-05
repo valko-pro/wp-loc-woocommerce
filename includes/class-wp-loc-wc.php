@@ -15,6 +15,7 @@ class WP_LOC_WC {
     public $coupons;
     public $shipping_labels;
     public $gateway_labels;
+    public $settings_texts;
     public $permalinks;
     public $rewrite_rules;
     public $admin_page;
@@ -43,6 +44,7 @@ class WP_LOC_WC {
             'class-wp-loc-wc-coupons',
             'class-wp-loc-wc-shipping-labels',
             'class-wp-loc-wc-gateway-labels',
+            'class-wp-loc-wc-settings-texts',
             'class-wp-loc-wc-permalinks',
             'class-wp-loc-wc-rewrite-rules',
         ];
@@ -71,6 +73,7 @@ class WP_LOC_WC {
         $this->coupons         = new WP_LOC_WC_Coupons();
         $this->shipping_labels = new WP_LOC_WC_Shipping_Labels();
         $this->gateway_labels  = new WP_LOC_WC_Gateway_Labels();
+        $this->settings_texts  = new WP_LOC_WC_Settings_Texts();
 
         $this->permalinks    = new WP_LOC_WC_Permalinks();
         $this->rewrite_rules = new WP_LOC_WC_Rewrite_Rules();
