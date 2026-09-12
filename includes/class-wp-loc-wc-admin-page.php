@@ -3,48 +3,27 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Multilingual → WooCommerce admin page: status overview + permalink
- * base translations. Mimics the wp-loc settings page patterns
- * (nav tabs, POST-to-self, nonce, ?updated=1 redirect).
+ * "WooCommerce" tab on the Multilingual → Settings screen: status overview
+ * + permalink base translations. Rendered and saved through the wp-loc
+ * settings extension hooks (the form, nonce and redirect belong to wp-loc).
  */
 class WP_LOC_WC_Admin_Page {
 
-    const PAGE_SLUG = 'wp-loc-woocommerce';
-
-    const TAB_STATUS = 'status';
-    const TAB_PERMALINKS = 'permalinks';
+    const TAB = 'woocommerce';
 
     public function __construct() {
-        add_action( 'admin_menu', [ $this, 'register_page' ], 30 );
-        add_action( 'admin_init', [ $this, 'handle_save' ] );
+        add_filter( 'wp_loc_settings_tabs', [ $this, 'register_tab' ] );
+        add_action( 'wp_loc_settings_render_' . self::TAB, [ $this, 'render_tab' ] );
+        add_action( 'wp_loc_settings_save_' . self::TAB, [ $this, 'handle_save' ] );
     }
 
-    public function register_page(): void {
-        add_submenu_page(
-            'wp-loc',
-            __( 'WooCommerce Multilingual', 'wp-loc-wc' ),
-            __( 'WooCommerce', 'wp-loc-wc' ),
-            'manage_options',
-            self::PAGE_SLUG,
-            [ $this, 'render_page' ]
-        );
-    }
+    public function register_tab( array $tabs ): array {
+        $tabs[ self::TAB ] = __( 'WooCommerce', 'wp-loc-wc' );
 
-    private function get_current_tab(): string {
-        $tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : self::TAB_STATUS;
-
-        return in_array( $tab, [ self::TAB_STATUS, self::TAB_PERMALINKS ], true ) ? $tab : self::TAB_STATUS;
+        return $tabs;
     }
 
     public function handle_save(): void {
-        if ( ! isset( $_POST['wp_loc_wc_permalinks_nonce'] ) || ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
-
-        if ( ! wp_verify_nonce( $_POST['wp_loc_wc_permalinks_nonce'], 'wp_loc_wc_save_permalinks' ) ) {
-            return;
-        }
-
         $default_lang = WP_LOC_WC_Lang::default_lang();
         $raw = isset( $_POST['wp_loc_wc_permalinks'] ) && is_array( $_POST['wp_loc_wc_permalinks'] ) ? $_POST['wp_loc_wc_permalinks'] : [];
         $strings = [];
@@ -68,49 +47,16 @@ class WP_LOC_WC_Admin_Page {
 
         // Deferred flush on the next init — the same mechanism wp-loc uses.
         update_option( 'wp_loc_flush_rewrite_rules', true );
-
-        wp_safe_redirect( add_query_arg(
-            [ 'page' => self::PAGE_SLUG, 'tab' => self::TAB_PERMALINKS, 'updated' => 1 ],
-            admin_url( 'admin.php' )
-        ) );
-        exit;
     }
 
-    public function render_page(): void {
-        $tab = $this->get_current_tab();
-
-        echo '<div class="wrap"><h1>' . esc_html__( 'WooCommerce Multilingual', 'wp-loc-wc' ) . '</h1>';
-
-        if ( isset( $_GET['updated'] ) ) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved. Rewrite rules will refresh on the next page load.', 'wp-loc-wc' ) . '</p></div>';
-        }
-
-        echo '<nav class="nav-tab-wrapper">';
-
-        foreach ( [ self::TAB_STATUS => __( 'Status', 'wp-loc-wc' ), self::TAB_PERMALINKS => __( 'Permalinks', 'wp-loc-wc' ) ] as $key => $label ) {
-            $url = add_query_arg( [ 'page' => self::PAGE_SLUG, 'tab' => $key ], admin_url( 'admin.php' ) );
-            $class = $tab === $key ? ' nav-tab-active' : '';
-            echo '<a href="' . esc_url( $url ) . '" class="nav-tab' . esc_attr( $class ) . '">' . esc_html( $label ) . '</a>';
-        }
-
-        echo '</nav>';
-
-        if ( $tab === self::TAB_PERMALINKS ) {
-            $this->render_permalinks_tab();
-        } else {
-            $this->render_status_tab();
-        }
-
-        echo '<hr />';
-        echo '<h2>' . esc_html__( 'How it works', 'wp-loc-wc' ) . '</h2>';
-        echo '<p>' . esc_html__( 'WooCommerce multilingual integration for WP-LOC: products, product categories, product tags, and attribute taxonomies (pa_*) are registered as translatable so each language has its own slug and admin translation workflow.', 'wp-loc-wc' ) . '</p>';
-        echo '<p>' . esc_html__( 'Store system pages (Shop, Cart, Checkout, My Account, Terms) are resolved to their translated version for the active language automatically — if a translation is missing the original page is used as a fallback.', 'wp-loc-wc' ) . '</p>';
-        echo '<p>' . esc_html__( 'The settings page has two tabs: Status (overview of translatable content types and the translation state of each system page per language) and Permalinks (translate WooCommerce URL bases — /product/, /product-category/, /product-tag/ — per secondary language, with an option to 301-redirect legacy default-base URLs).', 'wp-loc-wc' ) . '</p>';
-
+    public function render_tab(): void {
+        echo '<div class="wp-loc-settings-section">';
+        $this->render_status();
+        $this->render_permalinks();
         echo '</div>';
     }
 
-    private function render_status_tab(): void {
+    private function render_status(): void {
         $post_types = apply_filters( 'wp_loc_translatable_post_types', [ 'post', 'page' ] );
         $taxonomies = apply_filters( 'wp_loc_translatable_taxonomies', [ 'category', 'post_tag' ] );
 
@@ -154,9 +100,10 @@ class WP_LOC_WC_Admin_Page {
         }
 
         echo '</tbody></table>';
+        echo '<p class="description">' . esc_html__( 'Store system pages (Shop, Cart, Checkout, My Account, Terms) are resolved to their translated version for the active language automatically — if a translation is missing the original page is used as a fallback.', 'wp-loc-wc' ) . '</p>';
     }
 
-    private function render_permalinks_tab(): void {
+    private function render_permalinks(): void {
         $defaults = WP_LOC_WC_Permalinks::default_bases();
         $default_lang = WP_LOC_WC_Lang::default_lang();
         $labels = [
@@ -165,17 +112,15 @@ class WP_LOC_WC_Admin_Page {
             'tag'      => __( 'Tag base', 'wp-loc-wc' ),
         ];
 
-        echo '<form method="post">';
-        wp_nonce_field( 'wp_loc_wc_save_permalinks', 'wp_loc_wc_permalinks_nonce' );
-
-        echo '<p>' . esc_html__( 'Translate WC permalink bases per language. Empty field = default base under the language prefix.', 'wp-loc-wc' ) . '</p>';
+        echo '<h2>' . esc_html__( 'Permalinks', 'wp-loc-wc' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Translate WC permalink bases per language. Empty field = default base under the language prefix. Rewrite rules refresh on the next page load after saving.', 'wp-loc-wc' ) . '</p>';
 
         foreach ( WP_LOC_Languages::get_active_languages() as $lang => $data ) {
             if ( $lang === $default_lang ) {
                 continue;
             }
 
-            echo '<h2>' . esc_html( strtoupper( $lang ) ) . '</h2><table class="form-table">';
+            echo '<h3>' . esc_html( strtoupper( $lang ) ) . '</h3><table class="form-table">';
 
             foreach ( WP_LOC_WC_Permalinks::BASE_KEYS as $key ) {
                 $value = WP_LOC_WC_Permalinks::base_for( $lang, $key );
@@ -194,13 +139,10 @@ class WP_LOC_WC_Admin_Page {
             echo '</table>';
         }
 
-        echo '<h2>' . esc_html__( 'Options', 'wp-loc-wc' ) . '</h2><table class="form-table"><tr>';
+        echo '<table class="form-table"><tr>';
         echo '<th scope="row">' . esc_html__( 'Legacy redirects', 'wp-loc-wc' ) . '</th><td><label>';
         echo '<input type="checkbox" name="wp_loc_wc_legacy_redirect" value="1"' . checked( (bool) get_option( WP_LOC_WC_Permalinks::LEGACY_REDIRECT_OPTION ), true, false ) . '> ';
         echo esc_html__( '301 redirect old default-base URLs to the translated base', 'wp-loc-wc' );
         echo '</label></td></tr></table>';
-
-        submit_button();
-        echo '</form>';
     }
 }

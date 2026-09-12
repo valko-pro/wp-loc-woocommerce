@@ -18,7 +18,7 @@ Independent of the `wp-loc-multicurrency` addon — either plugin works alone. M
 
 ## Settings
 
-`Multilingual → WooCommerce` in wp-admin (status overview + permalink translations). Shipping and gateway label translations live directly in WooCommerce → Settings → Shipping / Payments.
+`Multilingual → Settings → WooCommerce` tab in wp-admin (status overview + permalink translations; requires the wp-loc settings extension hooks). Shipping and gateway label translations live directly in WooCommerce → Settings → Shipping / Payments.
 
 ## WP-CLI
 
