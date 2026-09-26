@@ -34,7 +34,14 @@ class WP_LOC_WC_Taxonomies {
             function_exists( 'wc_get_attribute_taxonomy_names' ) ? wc_get_attribute_taxonomy_names() : []
         );
 
-        return array_values( array_unique( array_merge( $taxonomies, $wc_taxonomies ) ) );
+        // WC service taxonomies hold flags (featured, outofstock, exclude-from-*,
+        // product type), not translatable content. wp-loc auto-detects any taxonomy
+        // with legacy icl_translations rows (e.g. left by WPML); a language-scoped
+        // flag term is then stripped from translations, so a ru product could never
+        // be featured or hidden as out of stock.
+        $service = [ 'product_visibility', 'product_type', 'product_shipping_class' ];
+
+        return array_values( array_diff( array_unique( array_merge( $taxonomies, $wc_taxonomies ) ), $service ) );
     }
 
     public function schedule_language_rows_sync(): void {
