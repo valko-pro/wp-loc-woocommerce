@@ -296,7 +296,11 @@ class WP_LOC_WC_Variations {
     /** Copy all synced meta keys from source to target as raw post meta. */
     private function copy_synced_meta( int $source_id, int $target_id ): void {
         foreach ( self::synced_meta_keys() as $meta_key ) {
-            $value = get_post_meta( $source_id, $meta_key, true );
+            /**
+             * Filters a synced meta value before it is written to the translation,
+             * e.g. to keep translated texts inside custom _product_attributes.
+             */
+            $value = apply_filters( 'wp_loc_wc_synced_meta_value', get_post_meta( $source_id, $meta_key, true ), $meta_key, $source_id, $target_id );
 
             if ( $value === '' || $value === false ) {
                 delete_post_meta( $target_id, $meta_key );
