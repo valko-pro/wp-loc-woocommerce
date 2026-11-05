@@ -25,6 +25,40 @@ class WP_LOC_WC_Variations {
         add_action( 'woocommerce_update_product', [ $this, 'handle_crud_update' ], 999 );
         add_action( 'woocommerce_update_product_variation', [ $this, 'handle_crud_variation_update' ], 999 );
         add_filter( 'wc_product_has_unique_sku', [ $this, 'allow_translated_sku' ], 10, 3 );
+        add_filter( 'wp_loc_sibling_write_hidden_request_keys', [ $this, 'hide_bulk_edit_nonce' ], 10, 2 );
+    }
+
+    /**
+     * WooCommerce applies a bulk or quick edit on every save_post that carries this
+     * nonce, so a copy saved in the same request would get a relative change twice.
+     * The copy receives the final price from the sync instead.
+     *
+     * The default-language product keeps the nonce when the edit was made on a
+     * translation: it is the source of truth, and without the edit its save would
+     * push the old price back over the translation.
+     *
+     * @param string[] $keys
+     * @return string[]
+     */
+    public function hide_bulk_edit_nonce( array $keys, int $sibling_id ): array {
+        if ( ! $this->is_unselected_source( $sibling_id ) ) {
+            $keys[] = 'woocommerce_quick_edit_nonce';
+        }
+
+        return $keys;
+    }
+
+    private function is_unselected_source( int $post_id ): bool {
+        $db = WP_LOC::instance()->db;
+        $lang = WP_LOC_DB::from_db_language_code( $db->get_element_language( $post_id, WP_LOC_DB::post_element_type( 'product' ) ) );
+
+        if ( $lang !== WP_LOC_WC_Lang::default_lang() ) {
+            return false;
+        }
+
+        $selected = array_map( 'intval', (array) ( $_REQUEST['post'] ?? [] ) );
+
+        return ! in_array( $post_id, $selected, true );
     }
 
     /**
