@@ -311,7 +311,7 @@ class WP_LOC_WC_Variations {
             $target->set_sale_price( $source->get_sale_price( 'edit' ) );
             $target->set_date_on_sale_from( $source->get_date_on_sale_from( 'edit' ) );
             $target->set_date_on_sale_to( $source->get_date_on_sale_to( 'edit' ) );
-            $target->set_sku( $source->get_sku( 'edit' ) );
+            $this->copy_sku( $source, $target );
             $target->set_manage_stock( $source->get_manage_stock( 'edit' ) );
             $target->set_stock_quantity( $source->get_stock_quantity( 'edit' ) );
             $target->set_tax_status( $source->get_tax_status( 'edit' ) );
@@ -324,6 +324,19 @@ class WP_LOC_WC_Variations {
             // (e.g. _product_image_gallery, _product_attributes) are also mirrored.
             // For the keys the CRUD layer already wrote, these are no-ops.
             $this->copy_synced_meta( $source_id, $target_id );
+        }
+    }
+
+    /**
+     * set_sku() re-runs WooCommerce's uniqueness check even for an unchanged
+     * value, so a duplicate left in the data (e.g. by an importer) would make
+     * every save of this product throw. Only a real change needs the check.
+     */
+    private function copy_sku( WC_Product $source, WC_Product $target ): void {
+        $sku = $source->get_sku( 'edit' );
+
+        if ( $target->get_sku( 'edit' ) !== $sku ) {
+            $target->set_sku( $sku );
         }
     }
 
@@ -407,7 +420,7 @@ class WP_LOC_WC_Variations {
                 $tgt_v->set_sale_price( $src_v->get_sale_price( 'edit' ) );
                 $tgt_v->set_date_on_sale_from( $src_v->get_date_on_sale_from( 'edit' ) );
                 $tgt_v->set_date_on_sale_to( $src_v->get_date_on_sale_to( 'edit' ) );
-                $tgt_v->set_sku( $src_v->get_sku( 'edit' ) );
+                $this->copy_sku( $src_v, $tgt_v );
                 $tgt_v->set_manage_stock( $src_v->get_manage_stock( 'edit' ) );
                 $tgt_v->set_stock_quantity( $src_v->get_stock_quantity( 'edit' ) );
                 $tgt_v->set_stock_status( $src_v->get_stock_status( 'edit' ) );
